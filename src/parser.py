@@ -28,7 +28,7 @@ class Parser:
         search_results_soup = BeautifulSoup(html, "html.parser")
         num_accommodations = self._get_accomodations_count(search_results_soup)
         logger.info(f"Found {num_accommodations} accommodations")
-
+    
         return SearchResults(
             search_url=search_url,
             count=num_accommodations,

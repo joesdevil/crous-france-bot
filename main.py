@@ -1,7 +1,7 @@
 import argparse
 import logging
 from typing import List
-
+import time
 import telepot
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -58,6 +58,7 @@ def create_driver(headless: bool = True) -> WebDriver:
     )
 
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Run the script in headless mode or not."
@@ -76,18 +77,26 @@ if __name__ == "__main__":
 
     user_confs = load_users_conf()
 
-    driver = create_driver(headless=not args.no_headless)
-    Authenticator(settings.MSE_EMAIL, settings.MSE_PASSWORD).authenticate_driver(driver)
+    while True:
+        driver = create_driver(headless=not args.no_headless)
+        Authenticator(settings.MSE_EMAIL, settings.MSE_PASSWORD).authenticate_driver(driver)
 
-    parser = Parser(driver)
-    notification_builder = NotificationBuilder()
-    notifier = TelegramNotifier(bot)
+        parser = Parser(driver)
+        notification_builder = NotificationBuilder()
+        notifier = TelegramNotifier(bot)
 
-    for conf in user_confs:
-        logging.info(f"Handling configuration : {conf}")
-        search_results = parser.get_accommodations(conf.search_url)  # type: ignore
-        notification = notification_builder.search_results_notification(search_results)
-        if notification:
+        for conf in user_confs:
+            logging.info(f"Handling configuration : {conf}")
+            search_results = parser.get_accommodations(conf.search_url)  # type: ignore
+
+            notification = notification_builder.search_results_notification(search_results)
             notifier.send_notification(conf.telegram_id, notification)
+            if search_results.accommodations:
+                logging.info("Accommodations found and notification sent. Exiting loop.")
+                driver.quit()
+                exit()  # Exit once accommodations are found
+            else:
+                logging.info("No accommodations found, retrying after delay.")
 
-    driver.quit()
+        driver.quit()
+        time.sleep(600)  
